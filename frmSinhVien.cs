@@ -58,7 +58,7 @@ namespace De01
                 int index = dgvSinhVien.Rows.Add();
 
                 // Gán các giá trị cho các cột
-                dgvSinhVien.Rows[index].Cells[0].Value = item.MaLop;  // Mã sinh viên
+                dgvSinhVien.Rows[index].Cells[0].Value = item.MaSV;  // Mã sinh viên
                 dgvSinhVien.Rows[index].Cells[1].Value = item.HotenSV;   // Họ tên sinh viên
                 dgvSinhVien.Rows[index].Cells[2].Value = item.Ngaysinh.ToString("dd/MM/yyyy"); // Ngày sinh (định dạng ngày)
                 if (item.Lop != null)
@@ -136,41 +136,43 @@ namespace De01
 
         private void btnxoa_Click(object sender, EventArgs e)
         {
-            try
+            if (string.IsNullOrEmpty(txtMssv.Text))
             {
-                if (dgvSinhVien.SelectedRows.Count > 0)
-                {
-                    // Xác nhận việc xóa
-                    DialogResult result = MessageBox.Show("Bạn có chắc chắn muốn xóa sinh viên này không?", "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.Yes)
-                    {
-                        // Lấy mã sinh viên từ dòng đang chọn
-                        int rowIndex = dgvSinhVien.SelectedRows[0].Index;
-                        string maSV = dgvSinhVien.Rows[rowIndex].Cells[0].Value.ToString();
-
-                        // Tìm sinh viên cần xóa
-                        Sinhvien sv = sinhVienService1.GetAll().FirstOrDefault(s => s.MaSV == maSV);
-
-                        if (sv != null)
-                        {
-                            // Gọi dịch vụ để xóa sinh viên
-                            sinhVienService1.Delete(sv);
-
-                            // Cập nhật lại DataGridView
-                            LoadSinhVienData();
-
-                            MessageBox.Show("Xóa sinh viên thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("Vui lòng chọn sinh viên để xóa.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                MessageBox.Show("Vui lòng chọn sinh viên để xóa.");
+                return;
             }
-            catch (Exception ex)
+
+            // Lấy MSSV từ TextBox
+            string maSv = txtMssv.Text;
+
+            // Tìm kiếm sinh viên cần xóa
+            var sv = sinhVienService1.GetAll().FirstOrDefault(s => s.MaSV == maSv);
+
+            // Kiểm tra xem kết quả tìm kiếm có null hay không
+            if (sv == null)
             {
-                MessageBox.Show("Đã xảy ra lỗi khi xóa sinh viên: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Không tìm thấy sinh viên.");
+                return;
+            }
+
+            // Xác nhận việc xóa
+            DialogResult result = MessageBox.Show("Bạn có chắc chắn muốn xóa sinh viên này?", "Xác nhận xóa", MessageBoxButtons.YesNo);
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    // Xóa sinh viên khỏi cơ sở dữ liệu
+                    sinhVienService1.Delete(sv);
+
+                    // Cập nhật lại DataGridView
+                    LoadSinhVienData();
+
+                    MessageBox.Show("Xóa sinh viên thành công.");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Đã xảy ra lỗi khi xóa sinh viên: " + ex.Message);
+                }
             }
         }
 
@@ -216,6 +218,33 @@ namespace De01
                 {
                     cbblop.Text = row.Cells[3].Value.ToString();  // Lớp học
                 }
+            }
+        }
+
+        private void btntimkiem_Click(object sender, EventArgs e)
+        {
+            string timKiem = txtTimKiem.Text;
+            var dsSinhVien = sinhVienService1.GetAll();
+
+            // Filt danh sách sinh viên dựa trên giá trị tìm kiếm
+            var ketQuaTimKiem = dsSinhVien.Where(s => s.MaSV.Contains(timKiem) || s.HotenSV.Contains(timKiem));
+
+            // Hiển thị kết quả tìm kiếm trên DataGridView
+            dgvSinhVien.DataSource = null;
+            dgvSinhVien.Rows.Clear();
+            foreach (var item in ketQuaTimKiem)
+            {
+                // Thêm một dòng mới và lấy chỉ số của nó
+                int index = dgvSinhVien.Rows.Add();
+
+                // Gán các giá trị cho các cột
+                dgvSinhVien.Rows[index].Cells[0].Value = item.MaLop;  // Mã sinh viên
+                dgvSinhVien.Rows[index].Cells[1].Value = item.HotenSV;   // Họ tên sinh viên
+                dgvSinhVien.Rows[index].Cells[2].Value = item.Ngaysinh.ToString("dd/MM/yyyy"); // Ngày sinh (định dạng ngày)
+                if (item.Lop != null)
+                    dgvSinhVien.Rows[index].Cells[3].Value = item.Lop.TenLop;  // Tên lớp
+                else
+                    dgvSinhVien.Rows[index].Cells[3].Value = "N/A";
             }
         }
     }
